@@ -1,8 +1,12 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
+const mongoose = require('mongoose');
+const Ratings = require('./app/models/rating');
+const Orders = require('./app/models/order')
 app.use(cors({ origin: "*" }));
-
+mongoose.set('useUnifiedTopology', true)
+mongoose.set('useNewUrlParser', true)
 const http = require("http").Server(app);
 const io = require("socket.io")(http, {
   cors: {
@@ -23,7 +27,6 @@ io.on("connection", (socket) => {
   console.log("someone connected:" + users);
   socket.on("waiter:call", callWaiter);
   //socket.disconnect();
-  socket.onAny(() => {});
   socket.on("disconnect", () => {
     users--;
     console.log("someone disconnected :" + users);
@@ -33,10 +36,40 @@ io.on("connection", (socket) => {
 // io.of("/admin").on("connection", (socket) => {
 //   socket.on("waiter:comming", waiterComming);
 // });
-app.get("/comments", (req, res) => {
+app.get("/commentsadd", (req, res) => {
+  let d = new Ratings(
+    {
+      rating: [false, true],
+      comment: "fdi"
+    }
+  )
+  d.save();
   res.send("f");
 });
-
-http.listen(port, () => {
-  console.log("listening on port :" + port);
+app.get("/commentsget", async (req, res) => {
+  res.send({ data: await Ratings.find() });
 });
+app.get("/gethistory", async (req, res) => {
+  res.send({ data: await Orders.find() });
+});
+app.get("/clearhistory", async (req, res) => {
+  console.log("deleting");
+  await Orders.deleteMany({
+    "createdAt": {
+      //"$lt": new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - 1)
+      "$lt": new Date()
+    }
+  }
+  )
+  res.send({ data: await Orders.find() });
+});
+mongoose.connect("mongodb://localhost:27017/glysteri").then(res => {
+
+  http.listen(port, () => {
+    console.log('Connected to Db');
+    console.log("listening on port :" + port);
+  });
+}).catch(() => {
+  console.log("something whent wrong");
+})
+
