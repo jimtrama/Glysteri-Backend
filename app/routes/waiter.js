@@ -11,7 +11,7 @@ function main(io) {
     io.of("/admin").emit("waiter:called", { sunbed, id });
   };
   return {
-    callWaiter,
+    callWaiter
   };
 }
 
