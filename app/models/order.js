@@ -3,14 +3,18 @@ const Schema = mongoose.Schema;
 
 const OrderSchema = new Schema(
     {
-        sunbed:{
-            type:String,
-            required:true
+        sunbed: {
+            type: String,
+            required: true
+        },
+        mac: {
+            type: String,
+            required: false
         }
-        
-    },{timestamps:true}
+
+    }, { timestamps: true }
 );
 
-const OrderModel = mongoose.model('orders',OrderSchema);
+const OrderModel = mongoose.model('orders', OrderSchema);
 
 module.exports = OrderModel;

@@ -3,7 +3,8 @@ const app = express();
 const cors = require("cors");
 const mongoose = require('mongoose');
 const Ratings = require('./app/models/rating');
-const Orders = require('./app/models/order')
+const Orders = require('./app/models/order');
+const mac = require("macfromip");
 app.use(cors({ origin: "*" }));
 mongoose.set('useUnifiedTopology', true)
 mongoose.set('useNewUrlParser', true)
@@ -25,7 +26,7 @@ const { callWaiter } = require("./app/routes/waiter")(io);
 io.on("connection", (socket) => {
   users++;
   console.log("someone connected:" + users);
-  socket.on("waiter:call", callWaiter);
+  socket.on("waiter:call", ({ id, sunbed }) => { callWaiter(socket, id, sunbed) });
   //socket.disconnect();
   socket.on("disconnect", () => {
     users--;
@@ -36,16 +37,46 @@ io.on("connection", (socket) => {
 // io.of("/admin").on("connection", (socket) => {
 //   socket.on("waiter:comming", waiterComming);
 // });
+
+app.get("/login", async (req, res) => {
+  let username = req.headers.username;
+  let password = req.headers.password;
+  if (username == "jim" && password == "jim") {
+    res.send({ success: true });
+  } else {
+    res.send({ success: false });
+  }
+})
 app.get("/commentsadd", (req, res) => {
-  let d = new Ratings(
-    {
-      rating: [false, true],
-      comment: "fdi"
+  let ip = req.socket.remoteAddress.split(":")[req.socket.remoteAddress.split(":").length - 1];
+
+  mac.getMac(ip, (e, mac) => {
+    if (e) {
+      let newRating = new Ratings(
+        {
+          rating: [false, true],
+          comment: "fdi",
+          "mac": "error"
+        }
+      )
+      //d.save();
+      res.send({ success: true, mac: false });
+    } else {
+      let d = new Ratings(
+        {
+          rating: [false, true],
+          comment: "fdi",
+          mac
+        }
+      )
+      console.log(ip, mac);
+      //d.save();
+      res.send({ success: true, mac: true });
     }
-  )
-  d.save();
-  res.send("f");
+  })
 });
+
+
 app.get("/commentsget", async (req, res) => {
   res.send({ data: await Ratings.find() });
 });
@@ -63,6 +94,9 @@ app.get("/clearhistory", async (req, res) => {
   )
   res.send({ data: await Orders.find() });
 });
+
+
+
 mongoose.connect("mongodb://localhost:27017/glysteri").then(res => {
 
   http.listen(port, () => {
