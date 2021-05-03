@@ -37,6 +37,9 @@ io.on("connection", (socket) => {
 });
 io.of("/admin").on("connection", (socket) => {
   console.log("admin Connected");
+  socket.on("disconnect", () => {
+    console.log("admin disconnected");
+  })
 })
 
 // app.get("/", async (req, res) => {
@@ -54,9 +57,10 @@ app.get("/login", async (req, res) => {
     res.send({ success: false });
   }
 })
-app.get("/commentsadd", (req, res) => {
-  let freeCommnet = req.headers.comment;
-  let userRatings = req.headers.ratings;
+app.post("/commentsadd", (req, res) => {
+  let freeCommnet = req.body.comment;
+  let userRatings = JSON.parse(req.body.ratings);
+
   let ip = req.socket.remoteAddress.split(":")[req.socket.remoteAddress.split(":").length - 1];
   const nets = networkInterfaces();
   const results = {}
@@ -73,14 +77,15 @@ app.get("/commentsadd", (req, res) => {
     }
   }
   const myip = results.en0[0];
-  if (ip != myip) {
+  if (ip.split(".").length == 3 && myip != ip) {
     mac.getMac(ip, (e, mac) => {
       if (e) {
         let newRating = new Ratings(
           {
-            rating: [false, true],
-            comment: "fdi",
-            "mac": "error"
+            ratings: userRatings,
+            comment: freeCommnet,
+            "mac": "error",
+            time: Math.floor(new Date().getTime() / (1000 * 60 * 60 * 24))
           }
         )
         newRating.save();
@@ -89,9 +94,10 @@ app.get("/commentsadd", (req, res) => {
       } else {
         let newRating = new Ratings(
           {
-            rating: [false, true],
-            comment: "fdi",
-            mac
+            ratings: userRatings,
+            comment: freeCommnet,
+            mac,
+            time: Math.floor(new Date().getTime() / (1000 * 60 * 60 * 24))
           }
         )
         newRating.save();
@@ -103,9 +109,10 @@ app.get("/commentsadd", (req, res) => {
   } else {
     let newRating = new Ratings(
       {
-        rating: [false, true],
-        comment: "fdi",
-        mac: "same"
+        ratings: userRatings,
+        comment: freeCommnet,
+        mac: "same",
+        time: Math.floor(new Date().getTime() / (1000 * 60 * 60 * 24))
       }
     )
     newRating.save();
@@ -120,20 +127,36 @@ app.get("/commentsget", async (req, res) => {
   res.send({ data: await Ratings.find() });
 });
 app.get("/gethistory", async (req, res) => {
-
-  res.send({ data: await Orders.find() });
-
+  let start = Math.floor(new Date().getTime() / (1000 * 60 * 60 * 24));
+  let orders = await Orders.find({
+    time: {
+      "$gte": start
+    }
+  })
+  res.send({ data: orders });
+  //res.send({ data: await Orders.find() });
 });
 app.get("/clearhistory", async (req, res) => {
   console.log("deleting");
   await Orders.deleteMany({
-    "createdAt": {
-      "$lt": new Date()
+    time: {
+      '$lt': Math.floor(new Date().getTime() / (1000 * 60 * 60 * 24))
     }
-  }
-  )
+  });
+
   res.send({ data: await Orders.find() });
 });
+app.get("/ratingsWithin", async (req, res) => {
+  let start = req.headers.start;
+  let stop = req.headers.stop;
+  let ratings = await Ratings.find({
+    time: {
+      "$lte": stop,
+      "$gte": start
+    }
+  })
+  res.send({ data: ratings });
+})
 
 
 

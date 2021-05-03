@@ -11,6 +11,10 @@ const OrderSchema = new Schema(
             type: String,
             required: false
         },
+        time: {
+            type: Number,
+            required: true
+        }
 
 
     }, { timestamps: true }

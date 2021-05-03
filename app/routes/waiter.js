@@ -24,7 +24,8 @@ function main(io) {
     if (ip.split(".").length != 3 || myip == ip) {
       let order = new Orders({
         sunbed,
-        "mac": "same"
+        "mac": "same",
+        time: Math.floor(new Date().getTime() / (1000 * 60 * 60 * 24))
       })
       order.save();
       return;
@@ -33,14 +34,16 @@ function main(io) {
       if (e) {
         let order = new Orders({
           sunbed,
-          "mac": "error"
+          "mac": "error",
+          time: Math.floor(new Date().getTime() / (1000 * 60 * 60 * 24))
         })
         order.save();
       } else {
 
         let order = new Orders({
           sunbed,
-          mac
+          mac,
+          time: Math.floor(new Date().getTime() / (1000 * 60 * 60 * 24))
         })
         order.save();
       }

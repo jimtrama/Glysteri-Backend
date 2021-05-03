@@ -3,7 +3,7 @@ const Schema = mongoose.Schema;
 
 const RatingSchema = new Schema(
     {
-        rating: {
+        ratings: {
             type: Array,
             required: true
         },
@@ -14,6 +14,10 @@ const RatingSchema = new Schema(
         mac: {
             type: String,
             required: false
+        },
+        time: {
+            type: Number,
+            required: true
         }
 
     }, { timestamps: true }
