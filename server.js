@@ -4,12 +4,15 @@ const cors = require("cors");
 const mongoose = require('mongoose');
 const Ratings = require('./app/models/rating');
 const Orders = require('./app/models/order');
+const Users = require('./app/models/user');
+const Waiter = require("./app/models/waiter");
 const mac = require("macfromip");
 const { networkInterfaces } = require('os');
 require('dotenv').config();
 app.use(cors({ origin: "*" }));
 mongoose.set('useUnifiedTopology', true)
 mongoose.set('useNewUrlParser', true)
+mongoose.set('useFindAndModify', false);
 const http = require("http").Server(app);
 const io = require("socket.io")(http, {
   cors: {
@@ -20,6 +23,7 @@ const io = require("socket.io")(http, {
 
 const MongoClient = require("mongodb").MongoClient;
 const bodyParser = require("body-parser");
+
 
 const port = process.env.PORT;
 let users = 0;
@@ -51,7 +55,8 @@ io.of("/admin").on("connection", (socket) => {
 app.get("/login", async (req, res) => {
   let username = req.headers.username;
   let password = req.headers.password;
-  if (username == "jim" && password == "jim") {
+  let users = await Users.find({ username, password });
+  if (users.length == 1) {
     res.send({ success: true });
   } else {
     res.send({ success: false });
@@ -157,8 +162,73 @@ app.get("/ratingsWithin", async (req, res) => {
   })
   res.send({ data: ratings });
 })
+app.get("/addwaiter", async (req, res) => {
+  let sunbesString = req.headers.sunbeds;
+  let name = req.headers.name;
+  let sunbeds = [];
+  let waiters = await Waiter.find({ name });
+  let a = sunbesString.split(",");
+  for (let field of a) {
+    let c = field.split("-");
+    if (c.length == 1) {
+      sunbeds.push(c[0]);
+    } else {
+      for (let i = parseInt(c[0]); i <= c[1]; i++) {
+        sunbeds.push(i);
+      }
+    }
 
+  }
 
+  if (waiters.length == 1) {
+    await Waiter.findByIdAndUpdate(waiters[0].id, { sunbeds });
+  } else {
+    let waiter = new Waiter({
+      name,
+      sunbeds,
+      sunbedss: sunbesString
+    })
+    waiter.save();
+  }
+
+  res.send({ success: true });
+})
+app.get('/changeuser', async (req, res) => {
+  let username = req.headers.username;
+  let oldusername = req.headers.oldusername;
+  let password = req.headers.password;
+  let oldpassword = req.headers.oldpassword;
+  let users = await Users.find({ username: oldusername, password: oldpassword });
+  if (username && password && users.length == 1) {
+    await Users.findByIdAndUpdate(users[0].id, { username, password })
+    res.send({ success: "username&password" });
+    return;
+  } else if (password && users.length == 1) {
+    await Users.findByIdAndUpdate(users[0].id, { password })
+    res.send({ success: "password" });
+    return;
+  }
+  else if (username && users.length == 1) {
+    await Users.findByIdAndUpdate(users[0].id, { username })
+    res.send({ success: "username" });
+    return;
+  }
+
+  res.send({ success: "false" });
+
+})
+app.get("/getwaiters", async (req, res) => {
+  let a = await Waiter.find();
+  for (let waiter = 0; waiter < a.length; waiter++) {
+    for (let num = 0; num < a[waiter].sunbeds.length; num++) {
+      a[waiter].sunbeds[num] = parseInt(a[waiter].sunbeds[num]);
+    }
+  }
+  res.send({ data: a });
+})
+app.get("/getwaiterssettings", async (req, res) => {
+  res.send({ data: await Waiter.find() });
+})
 
 mongoose.connect("mongodb://localhost:27017/glysteri").then(async res => {
 
